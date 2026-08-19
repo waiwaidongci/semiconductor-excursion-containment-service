@@ -12,26 +12,25 @@ func Select(wafers []Wafer, predicate Predicate) []Wafer {
 	if predicate == nil {
 		return CloneAll(wafers)
 	}
-	selected := make([]Wafer, 0, len(wafers))
+	selected := wafers[:0]
 	for _, item := range wafers {
 		if predicate(item) {
-			selected = append(selected, item.Clone())
+			selected = append(selected, item)
 		}
 	}
 	return selected
 }
 
 func SortBySlot(wafers []Wafer) []Wafer {
-	sorted := CloneAll(wafers)
-	sort.SliceStable(sorted, func(left, right int) bool { return sorted[left].Slot < sorted[right].Slot })
-	return sorted
+	sort.SliceStable(wafers, func(left, right int) bool { return wafers[left].Slot < wafers[right].Slot })
+	return wafers
 }
 
 func Annotate(wafers []Wafer, key, value string) ([]Wafer, error) {
 	if key == "" {
 		return nil, errors.New("annotation key is required")
 	}
-	annotated := CloneAll(wafers)
+	annotated := wafers
 	for index := range annotated {
 		if annotated[index].Tags == nil {
 			annotated[index].Tags = make(map[string]string)
@@ -45,7 +44,7 @@ func Reclassify(wafers []Wafer, disposition string, measuredAt time.Time) ([]Waf
 	if disposition == "" {
 		return nil, errors.New("disposition is required")
 	}
-	reclassified := CloneAll(wafers)
+	reclassified := wafers
 	for index := range reclassified {
 		timestamp := measuredAt
 		reclassified[index].Disposition = disposition
@@ -57,9 +56,9 @@ func Reclassify(wafers []Wafer, disposition string, measuredAt time.Time) ([]Waf
 func Split(wafers []Wafer, predicate Predicate) (matched, remaining []Wafer) {
 	for _, item := range wafers {
 		if predicate != nil && predicate(item) {
-			matched = append(matched, item.Clone())
+			matched = append(matched, item)
 		} else {
-			remaining = append(remaining, item.Clone())
+			remaining = append(remaining, item)
 		}
 	}
 	return matched, remaining
@@ -72,7 +71,7 @@ func Merge(groups ...[]Wafer) []Wafer {
 	}
 	merged := make([]Wafer, 0, total)
 	for _, group := range groups {
-		merged = append(merged, CloneAll(group)...)
+		merged = append(merged, group...)
 	}
 	return SortBySlot(merged)
 }
