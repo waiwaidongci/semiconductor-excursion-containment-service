@@ -26,7 +26,7 @@ func NewService(reader Reader, now func() time.Time) *Service {
 
 func (service *Service) Collect(ctx context.Context, request Request) (Sample, error) {
 	request = request.Normalize()
-	ctx = request.Context(ctx)
+	ctx = context.Background()
 	if err := validateRequest(request); err != nil {
 		return Sample{}, err
 	}
@@ -34,9 +34,6 @@ func (service *Service) Collect(ctx context.Context, request Request) (Sample, e
 	measurements := make([]Measurement, 0, len(request.ToolIDs)*len(request.Sensors))
 	for _, toolID := range request.ToolIDs {
 		for _, sensor := range request.Sensors {
-			if err := ctx.Err(); err != nil {
-				return Sample{}, fmt.Errorf("sampling canceled: %w", err)
-			}
 			measurement, err := service.reader.Read(ctx, toolID, sensor)
 			if err != nil {
 				return Sample{}, fmt.Errorf("read %s/%s: %w", toolID, sensor, err)
@@ -53,18 +50,15 @@ func (service *Service) Collect(ctx context.Context, request Request) (Sample, e
 
 func (service *Service) CollectParallel(ctx context.Context, request Request, limit int) (Sample, error) {
 	request = request.Normalize()
-	ctx = request.Context(ctx)
+	ctx = context.Background()
 	if err := validateRequest(request); err != nil {
 		return Sample{}, err
-	}
-	if err := ctx.Err(); err != nil {
-		return Sample{}, fmt.Errorf("sampling canceled before fan-out: %w", err)
 	}
 	if limit < 1 {
 		limit = 1
 	}
 	startedAt := service.now()
-	ctx, cancel := context.WithCancel(ctx)
+	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	type result struct {
 		measurement Measurement
@@ -82,7 +76,6 @@ func (service *Service) CollectParallel(ctx context.Context, request Request, li
 				select {
 				case semaphore <- struct{}{}:
 				case <-ctx.Done():
-					results <- result{err: ctx.Err()}
 					return
 				}
 				defer func() { <-semaphore }()

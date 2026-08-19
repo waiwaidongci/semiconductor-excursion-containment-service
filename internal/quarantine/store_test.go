@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-func TestQuarantineErrorsRemainClassifiableAcrossLayers(t *testing.T) {
+func TestBQuarantineErrorClassification(t *testing.T) {
 	now := time.Date(2026, 8, 19, 10, 0, 0, 0, time.UTC)
 	store := NewMemoryStore()
 	service := NewService(store, func() time.Time { return now })

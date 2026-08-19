@@ -16,7 +16,7 @@ func (reader *blockingReader) Read(ctx context.Context, toolID, sensor string) (
 	return Measurement{}, ctx.Err()
 }
 
-func TestSamplingCancellationReachesEveryReadPath(t *testing.T) {
+func TestCSamplingCancelPropagation(t *testing.T) {
 	request := Request{LotID: "LOT-CTX", ToolIDs: []string{"ETCH-1", "ETCH-2"}, Sensors: []string{"pressure"}}
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
@@ -36,5 +36,9 @@ func TestSamplingCancellationReachesEveryReadPath(t *testing.T) {
 	}
 	if reader.calls.Load() != 0 {
 		t.Fatalf("reader started %d calls after cancellation", reader.calls.Load())
+	}
+	normalized := (Request{ToolIDs: []string{"B", "A", "B"}, Sensors: []string{"z", "a", "z"}}).Normalize()
+	if len(normalized.ToolIDs) != 2 || normalized.ToolIDs[0] != "A" || normalized.ToolIDs[1] != "B" || len(normalized.Sensors) != 2 || normalized.Sensors[0] != "a" {
+		t.Fatalf("sampling request normalization is unstable: %#v", normalized)
 	}
 }
