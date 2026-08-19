@@ -3,6 +3,7 @@ package investigation
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync"
 	"time"
 )
@@ -47,8 +48,8 @@ func (coordinator *Coordinator) Run(ctx context.Context, lotID string, chambers 
 	var waitGroup sync.WaitGroup
 	for _, chamber := range chambers {
 		chamber := chamber
+		waitGroup.Add(1)
 		go func() {
-			waitGroup.Add(1)
 			defer waitGroup.Done()
 			select {
 			case semaphore <- struct{}{}:
@@ -61,11 +62,15 @@ func (coordinator *Coordinator) Run(ctx context.Context, lotID string, chambers 
 			results <- result{finding: finding, err: err}
 		}()
 	}
-	close(results)
+	go func() {
+		waitGroup.Wait()
+		close(results)
+	}()
 	findings := make([]Finding, 0, len(chambers))
 	for item := range results {
 		if item.err != nil {
-			continue
+			cancel()
+			return Report{}, fmt.Errorf("inspect chamber: %w", item.err)
 		}
 		if err := item.finding.Validate(); err != nil {
 			cancel()
@@ -78,7 +83,7 @@ func (coordinator *Coordinator) Run(ctx context.Context, lotID string, chambers 
 
 func Summarize(report Report) map[string]int {
 	summary := make(map[string]int)
-	for _, finding := range report.Critical() {
+	for _, finding := range report.Findings {
 		summary[finding.Severity]++
 	}
 	return summary
