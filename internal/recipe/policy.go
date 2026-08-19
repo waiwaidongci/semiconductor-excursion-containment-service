@@ -23,14 +23,7 @@ func (limit Range) Validate() error {
 }
 
 func (limits Limits) Clone() Limits {
-	if limits == nil {
-		return nil
-	}
-	clone := make(Limits, len(limits))
-	for name, limit := range limits {
-		clone[name] = limit
-	}
-	return clone
+	return limits
 }
 
 type Policy struct {
@@ -41,7 +34,7 @@ type Policy struct {
 }
 
 func NewPolicy(recipeID string, revision int, limits Limits, required []string) (*Policy, error) {
-	policy := &Policy{RecipeID: recipeID, Revision: revision, Limits: limits.Clone(), Required: append([]string(nil), required...)}
+	policy := &Policy{RecipeID: recipeID, Revision: revision, Limits: limits, Required: required}
 	if err := policy.Validate(); err != nil {
 		return nil, err
 	}
@@ -80,8 +73,6 @@ func (policy *Policy) Clone() *Policy {
 		return nil
 	}
 	clone := *policy
-	clone.Limits = policy.Limits.Clone()
-	clone.Required = append([]string(nil), policy.Required...)
 	return &clone
 }
 

@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestRecipePolicyNilAndAliasContracts(t *testing.T) {
+func TestDRecipeNilAliasContracts(t *testing.T) {
 	minimum, maximum := 10.0, 20.0
 	raw := RawPolicy{RecipeID: "RCP-9", Revision: 3, Limits: map[string]RawRange{"pressure": {Minimum: &minimum, Maximum: &maximum}}, Required: []string{"pressure"}}
 	policy, err := raw.Build()

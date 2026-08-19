@@ -16,7 +16,7 @@ func (reader *blockingReader) Read(ctx context.Context, toolID, sensor string) (
 	return Measurement{}, ctx.Err()
 }
 
-func TestSamplingCancellationReachesEveryReadPath(t *testing.T) {
+func TestCSamplingCancelPropagation(t *testing.T) {
 	request := Request{LotID: "LOT-CTX", ToolIDs: []string{"ETCH-1", "ETCH-2"}, Sensors: []string{"pressure"}}
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
