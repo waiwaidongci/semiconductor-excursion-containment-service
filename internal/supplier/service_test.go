@@ -10,7 +10,7 @@ type failingGateway struct{ err error }
 
 func (gateway failingGateway) Fetch(request *Request) ([]byte, error) { return nil, gateway.err }
 
-func TestSupplierFailureChainControlsRetryAndState(t *testing.T) {
+func TestHSupplierRetrySemantics(t *testing.T) {
 	now := time.Date(2026, 8, 19, 12, 0, 0, 0, time.UTC)
 	store := NewMemoryStore()
 	request, err := NewRequest("REQ-1", "SUP-2", "LOT-S", now)
@@ -35,5 +35,14 @@ func TestSupplierFailureChainControlsRetryAndState(t *testing.T) {
 	_, err = store.Find("missing")
 	if !errors.Is(err, ErrEvidenceMissing) || Classify(err) != FailurePermanent || ShouldRetry(err, 0, 3) {
 		t.Fatalf("missing request became retryable: %v", err)
+	}
+	var missing *Request
+	if err := missing.MarkPending(now); !errors.Is(err, ErrEvidenceMissing) {
+		t.Fatalf("nil request lost missing evidence identity: %v", err)
+	}
+	blocked := request.Clone()
+	blocked.Status = StatusRejected
+	if err := blocked.MarkPending(now); !errors.Is(err, ErrSupplierBlocked) {
+		t.Fatalf("blocked supplier lost permanent identity: %v", err)
 	}
 }

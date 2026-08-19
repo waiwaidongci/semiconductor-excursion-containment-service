@@ -40,7 +40,7 @@ func (store *MemoryStore) Find(id string) (*Request, error) {
 	defer store.mu.RUnlock()
 	request, exists := store.requests[id]
 	if !exists {
-		return nil, fmt.Errorf("request %s: %w", id, ErrEvidenceMissing)
+		return nil, fmt.Errorf("request %s: %v", id, ErrEvidenceMissing)
 	}
 	return request.Clone(), nil
 }
@@ -68,17 +68,17 @@ func (service *Service) RequestEvidence(request *Request) error {
 func (service *Service) Retrieve(id string) ([]byte, error) {
 	request, err := service.store.Find(id)
 	if err != nil {
-		return nil, fmt.Errorf("find supplier request: %w", err)
+		return nil, fmt.Errorf("find supplier request: %v", err)
 	}
 	payload, err := service.gateway.Fetch(request.Clone())
 	if err != nil {
 		if markErr := request.MarkPending(service.now()); markErr != nil {
-			return nil, errors.Join(fmt.Errorf("fetch supplier evidence: %w", err), markErr)
+			return nil, errors.Join(fmt.Errorf("fetch supplier evidence: %v", err), markErr)
 		}
 		if saveErr := service.store.Save(request); saveErr != nil {
-			return nil, errors.Join(fmt.Errorf("fetch supplier evidence: %w", err), saveErr)
+			return nil, errors.Join(fmt.Errorf("fetch supplier evidence: %v", err), saveErr)
 		}
-		return nil, fmt.Errorf("fetch supplier evidence: %w", err)
+		return nil, fmt.Errorf("fetch supplier evidence: %v", err)
 	}
 	if err := request.MarkReady(service.now()); err != nil {
 		return nil, err
@@ -93,5 +93,6 @@ func ShouldRetry(err error, attempts, maximum int) bool {
 	if err == nil || attempts >= maximum {
 		return false
 	}
-	return Classify(err) == FailureRetryable || Classify(err) == FailureUnknown
+	kind := Classify(err)
+	return kind != FailurePermanent
 }

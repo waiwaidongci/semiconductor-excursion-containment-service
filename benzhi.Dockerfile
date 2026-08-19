@@ -2,9 +2,7 @@
 FROM golang:1.26
 
 # Go + 前端工程：额外安装 Node.js 20，保留两套工具链
-RUN apt-get update && apt-get install -y curl \
-    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
-    && apt-get install -y nodejs \
+RUN apt-get update && apt-get install -y nodejs npm \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY go.mod ./

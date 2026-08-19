@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-func TestRegistryConcurrentSnapshotsAreIsolated(t *testing.T) {
+func TestGMetrologySnapshotLocking(t *testing.T) {
 	registry := NewRegistry(time.Now)
 	for index := 0; index < 32; index++ {
 		point := Point{Key: Key{ToolID: "ETCH-1", Metric: fmt.Sprintf("m-%02d", index)}, Value: float64(index), Unit: "nm", ObservedAt: time.Now()}
