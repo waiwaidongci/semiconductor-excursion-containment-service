@@ -63,21 +63,27 @@ func NewStaticProvider(policies ...*Policy) *StaticProvider {
 	provider := &StaticProvider{policies: make(map[string]*Policy)}
 	for _, policy := range policies {
 		if policy != nil {
-			provider.policies[policy.RecipeID] = policy
+			provider.policies[policy.RecipeID] = policy.Clone()
 		}
 	}
 	return provider
 }
 
 func (provider *StaticProvider) Current(recipeID string) (*Policy, error) {
+	if provider == nil {
+		return nil, ErrPolicyMissing
+	}
 	policy, ok := provider.policies[recipeID]
 	if !ok {
 		return nil, fmt.Errorf("recipe %s: %w", recipeID, ErrPolicyMissing)
 	}
-	return policy, nil
+	return policy.Clone(), nil
 }
 
 func ValidateValues(provider Provider, recipeID string, values map[string]float64) error {
+	if provider == nil {
+		return ErrPolicyMissing
+	}
 	policy, err := provider.Current(recipeID)
 	if err != nil {
 		return err
