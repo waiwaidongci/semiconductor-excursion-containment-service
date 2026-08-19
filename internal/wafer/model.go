@@ -23,7 +23,22 @@ type Wafer struct {
 }
 
 func (wafer Wafer) Clone() Wafer {
-	return wafer
+	clone := wafer
+	if wafer.MeasuredAt != nil {
+		t := *wafer.MeasuredAt
+		clone.MeasuredAt = &t
+	}
+	if wafer.Measurements != nil {
+		clone.Measurements = make([]Measurement, len(wafer.Measurements))
+		copy(clone.Measurements, wafer.Measurements)
+	}
+	if wafer.Tags != nil {
+		clone.Tags = make(map[string]string, len(wafer.Tags))
+		for k, v := range wafer.Tags {
+			clone.Tags[k] = v
+		}
+	}
+	return clone
 }
 
 func (wafer Wafer) Validate() error {
@@ -52,7 +67,7 @@ func NewSnapshot(lotID string, wafers []Wafer, reason string, now time.Time) (Sn
 	if lotID == "" || reason == "" {
 		return Snapshot{}, errors.New("lot id and snapshot reason are required")
 	}
-	cloned := wafers
+	cloned := CloneAll(wafers)
 	for _, item := range cloned {
 		if err := item.Validate(); err != nil {
 			return Snapshot{}, err
@@ -64,10 +79,17 @@ func NewSnapshot(lotID string, wafers []Wafer, reason string, now time.Time) (Sn
 
 func (snapshot Snapshot) Clone() Snapshot {
 	clone := snapshot
-	clone.Wafers = snapshot.Wafers
+	clone.Wafers = CloneAll(snapshot.Wafers)
 	return clone
 }
 
 func CloneAll(wafers []Wafer) []Wafer {
-	return wafers
+	if wafers == nil {
+		return nil
+	}
+	cloned := make([]Wafer, len(wafers))
+	for i := range wafers {
+		cloned[i] = wafers[i].Clone()
+	}
+	return cloned
 }
