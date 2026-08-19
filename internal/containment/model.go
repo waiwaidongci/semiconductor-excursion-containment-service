@@ -60,6 +60,16 @@ func (lot *Lot) Clone() *Lot {
 		return nil
 	}
 	clone := *lot
+	if lot.AffectedTools != nil {
+		clone.AffectedTools = make(map[string]time.Time, len(lot.AffectedTools))
+		for tool, observedAt := range lot.AffectedTools {
+			clone.AffectedTools[tool] = observedAt
+		}
+	}
+	if lot.History != nil {
+		clone.History = make([]Transition, len(lot.History))
+		copy(clone.History, lot.History)
+	}
 	return &clone
 }
 

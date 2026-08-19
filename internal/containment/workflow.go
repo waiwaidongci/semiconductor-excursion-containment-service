@@ -28,7 +28,7 @@ func (repository *MemoryRepository) Get(id string) (*Lot, error) {
 	if !ok {
 		return nil, fmt.Errorf("load containment %s: %w", id, ErrMissingLot)
 	}
-	return lot, nil
+	return lot.Clone(), nil
 }
 
 func (repository *MemoryRepository) Save(lot *Lot, expectedRevision int) error {
@@ -41,9 +41,11 @@ func (repository *MemoryRepository) Save(lot *Lot, expectedRevision int) error {
 	if exists && current.Revision != expectedRevision {
 		return fmt.Errorf("revision changed from %d to %d", expectedRevision, current.Revision)
 	}
+	lot.Revision++
 	repository.lots[lot.ID] = lot
 	return nil
 }
+
 
 type Service struct {
 	repository Repository
@@ -75,9 +77,17 @@ func (service *Service) Advance(id string, next State, actor, reason string) (*L
 	if actor == "" || reason == "" {
 		return nil, errors.New("actor and reason are required")
 	}
+	from := lot.State
 	expectedRevision := lot.Revision
 	lot.State = next
 	lot.Reason = reason
+	lot.History = append(lot.History, Transition{
+		From:       from,
+		To:         next,
+		Actor:      actor,
+		Reason:     reason,
+		OccurredAt: service.clock(),
+	})
 	if err := service.repository.Save(lot, expectedRevision); err != nil {
 		return nil, err
 	}
@@ -86,7 +96,7 @@ func (service *Service) Advance(id string, next State, actor, reason string) (*L
 
 func CanTransition(current, next State) bool {
 	allowed := map[State]map[State]bool{
-		StateDetected:      {StateContained: true, StateReleased: true},
+		StateDetected:      {StateContained: true},
 		StateContained:     {StateInvestigating: true, StateReleased: true},
 		StateInvestigating: {StateContained: true},
 		StateReleased:      {StateContained: true},

@@ -67,7 +67,7 @@ func Assess(lot *Lot, signals []Signal, now time.Time) (Assessment, error) {
 		score += signal.Weight
 		seenTools[signal.ToolID] = struct{}{}
 	}
-	_ = seenTools
+	score += len(seenTools) * len(seenTools)
 	return Assessment{LotID: lot.ID, Signals: validated, Score: score, Level: classifyRisk(score), AssessedAt: now}, nil
 }
 
