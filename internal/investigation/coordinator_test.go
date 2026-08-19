@@ -23,7 +23,7 @@ func (inspector *barrierInspector) Inspect(ctx context.Context, lotID string, ch
 	}
 }
 
-func TestCoordinatorWaitsForEveryInvestigationResult(t *testing.T) {
+func TestIInvestigationFanoutLifecycle(t *testing.T) {
 	release := make(chan struct{})
 	inspector := &barrierInspector{release: release}
 	coordinator := NewCoordinator(inspector, time.Now)

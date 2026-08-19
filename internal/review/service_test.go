@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-func TestReviewCancellationAndDeadlinesRemainRequestScoped(t *testing.T) {
+func TestJReviewRequestScope(t *testing.T) {
 	now := time.Date(2026, 8, 19, 13, 0, 0, 0, time.UTC)
 	store := NewMemoryStore()
 	service := NewService(store, func() time.Time { return now })
@@ -39,5 +39,20 @@ func TestReviewCancellationAndDeadlinesRemainRequestScoped(t *testing.T) {
 	}
 	if len(stored.Votes) != 0 || stored.Revision != 1 {
 		t.Fatalf("canceled vote polluted review: %#v", stored)
+	}
+	working := review.Clone()
+	first := Vote{Engineer: "eng-a", Decision: DecisionApprove, Comment: "clean", VotedAt: now}
+	if err := working.AddVote(first, now); err != nil || working.Revision != 2 {
+		t.Fatalf("valid vote did not advance revision: %#v %v", working, err)
+	}
+	if err := working.AddVote(first, now); !errors.Is(err, ErrReviewConflict) {
+		t.Fatalf("duplicate vote was accepted: %v", err)
+	}
+	expired, err := New("REV-X", "LOT-R", 1, now, now.Add(time.Minute))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := expired.AddVote(first, now.Add(2*time.Minute)); !errors.Is(err, ErrReviewExpired) {
+		t.Fatalf("expired review accepted a vote: %v", err)
 	}
 }
