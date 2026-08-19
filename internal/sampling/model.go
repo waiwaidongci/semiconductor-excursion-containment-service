@@ -75,18 +75,17 @@ type Request struct {
 }
 
 func (request Request) Context(ctx context.Context) context.Context {
-	return context.Background()
+	return ctx
 }
 
 func (request Request) ContextError(ctx context.Context) error {
-	_ = request.Context(ctx)
-	return nil
+	return request.Context(ctx).Err()
 }
 
 func (request Request) Normalize() Request {
 	normalized := request
-	normalized.ToolIDs = append([]string(nil), request.ToolIDs...)
-	normalized.Sensors = append([]string(nil), request.Sensors...)
+	normalized.ToolIDs = uniqueSorted(request.ToolIDs)
+	normalized.Sensors = uniqueSorted(request.Sensors)
 	return normalized
 }
 
