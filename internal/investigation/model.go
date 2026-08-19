@@ -45,18 +45,22 @@ type Report struct {
 
 func (report Report) Clone() Report {
 	clone := report
-	clone.Findings = report.Findings
+	clone.Findings = make([]Finding, len(report.Findings))
+	copy(clone.Findings, report.Findings)
 	return clone
 }
 
 func (report Report) Sorted() Report {
-	sort.SliceStable(report.Findings, func(left, right int) bool {
-		if report.Findings[left].Chamber.ToolID == report.Findings[right].Chamber.ToolID {
-			return report.Findings[left].Chamber.ChamberID < report.Findings[right].Chamber.ChamberID
+	sorted := report
+	sorted.Findings = make([]Finding, len(report.Findings))
+	copy(sorted.Findings, report.Findings)
+	sort.SliceStable(sorted.Findings, func(left, right int) bool {
+		if sorted.Findings[left].Chamber.ToolID == sorted.Findings[right].Chamber.ToolID {
+			return sorted.Findings[left].Chamber.ChamberID < sorted.Findings[right].Chamber.ChamberID
 		}
-		return report.Findings[left].Chamber.ToolID < report.Findings[right].Chamber.ToolID
+		return sorted.Findings[left].Chamber.ToolID < sorted.Findings[right].Chamber.ToolID
 	})
-	return report
+	return sorted
 }
 
 func (report Report) Critical() []Finding {

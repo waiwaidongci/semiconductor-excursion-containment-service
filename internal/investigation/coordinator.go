@@ -47,8 +47,8 @@ func (coordinator *Coordinator) Run(ctx context.Context, lotID string, chambers 
 	var waitGroup sync.WaitGroup
 	for _, chamber := range chambers {
 		chamber := chamber
+		waitGroup.Add(1)
 		go func() {
-			waitGroup.Add(1)
 			defer waitGroup.Done()
 			select {
 			case semaphore <- struct{}{}:
@@ -61,24 +61,36 @@ func (coordinator *Coordinator) Run(ctx context.Context, lotID string, chambers 
 			results <- result{finding: finding, err: err}
 		}()
 	}
-	close(results)
+	go func() {
+		waitGroup.Wait()
+		close(results)
+	}()
 	findings := make([]Finding, 0, len(chambers))
+	var firstErr error
 	for item := range results {
 		if item.err != nil {
+			if firstErr == nil {
+				firstErr = item.err
+			}
 			continue
 		}
 		if err := item.finding.Validate(); err != nil {
 			cancel()
+			for range results {
+			}
 			return Report{}, err
 		}
 		findings = append(findings, item.finding)
+	}
+	if firstErr != nil {
+		return Report{}, firstErr
 	}
 	return Report{LotID: lotID, Findings: findings, StartedAt: startedAt, FinishedAt: coordinator.now()}.Sorted(), nil
 }
 
 func Summarize(report Report) map[string]int {
 	summary := make(map[string]int)
-	for _, finding := range report.Critical() {
+	for _, finding := range report.Findings {
 		summary[finding.Severity]++
 	}
 	return summary
