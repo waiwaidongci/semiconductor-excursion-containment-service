@@ -48,10 +48,10 @@ func (request *Request) Clone() *Request {
 
 func (request *Request) MarkPending(now time.Time) error {
 	if request == nil {
-		return errors.New("supplier evidence missing")
+		return ErrEvidenceMissing
 	}
 	if request.Status == StatusRejected {
-		return errors.New("supplier blocked")
+		return ErrSupplierBlocked
 	}
 	request.Status = StatusPending
 	request.Attempts++
@@ -81,9 +81,9 @@ const (
 
 func Classify(err error) FailureKind {
 	switch {
-	case err == ErrEvidenceMissing, err == ErrSupplierBlocked:
+	case errors.Is(err, ErrEvidenceMissing), errors.Is(err, ErrSupplierBlocked):
 		return FailurePermanent
-	case err == ErrEvidencePending:
+	case errors.Is(err, ErrEvidencePending):
 		return FailureRetryable
 	default:
 		return FailureUnknown
