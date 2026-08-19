@@ -57,7 +57,7 @@ func (bundle Bundle) Validate() error {
 
 func (bundle Bundle) Clone() Bundle {
 	clone := bundle
-	clone.Items = append([]Item(nil), bundle.Items...)
+	clone.Items = bundle.Items
 	return clone
 }
 
@@ -69,6 +69,6 @@ type Result struct {
 
 func (result Result) Clone() Result {
 	clone := result
-	clone.IDs = append([]string(nil), result.IDs...)
+	clone.IDs = result.IDs
 	return clone
 }

@@ -63,7 +63,7 @@ func (factory *trackedTransactions) Begin(lotID string) (Transaction, error) {
 	return factory.current, nil
 }
 
-func TestEvidenceResourcesCloseAndErrorsSurvive(t *testing.T) {
+func TestFEvidenceResourceLifecycle(t *testing.T) {
 	items := make([]Item, 0, 12)
 	for index := 0; index < 12; index++ {
 		items = append(items, Item{ID: fmt.Sprintf("E-%02d", index), LotID: "LOT-E", Kind: "image", Location: fmt.Sprintf("s3://e/%d", index), Checksum: "sha256", CreatedAt: time.Now()})
@@ -85,5 +85,17 @@ func TestEvidenceResourcesCloseAndErrorsSurvive(t *testing.T) {
 	}
 	if resources.open != 0 || !transactions.current.rolledBack || transactions.current.committed {
 		t.Fatalf("failed bundle leaked resource or transaction: open=%d tx=%#v", resources.open, transactions.current)
+	}
+	clone := (Result{IDs: []string{"original"}}).Clone()
+	clone.IDs[0] = "changed"
+	resultSource := Result{IDs: []string{"kept"}}
+	resultCopy := resultSource.Clone()
+	resultCopy.IDs[0] = "mutated"
+	if resultSource.IDs[0] != "kept" {
+		t.Fatal("result clone exposed its source IDs")
+	}
+	_, err = ProcessAll(processor, []Bundle{{LotID: "LOT-E", Items: items}})
+	if err == nil {
+		t.Fatal("batch processing swallowed a failed bundle")
 	}
 }

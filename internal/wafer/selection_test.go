@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-func TestWaferDerivationsNeverMutateSource(t *testing.T) {
+func TestEWaferDerivationIsolation(t *testing.T) {
 	now := time.Date(2026, 8, 19, 11, 0, 0, 0, time.UTC)
 	source := []Wafer{
 		{ID: "W2", Slot: 2, Disposition: "hold", MeasuredAt: &now, Measurements: []Measurement{{Name: "cd", Value: 42, Unit: "nm"}}, Tags: map[string]string{"origin": "fab-a"}},
