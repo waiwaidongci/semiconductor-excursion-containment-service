@@ -10,7 +10,7 @@ type failingGateway struct{ err error }
 
 func (gateway failingGateway) Fetch(request *Request) ([]byte, error) { return nil, gateway.err }
 
-func TestSupplierFailureChainControlsRetryAndState(t *testing.T) {
+func TestHSupplierRetrySemantics(t *testing.T) {
 	now := time.Date(2026, 8, 19, 12, 0, 0, 0, time.UTC)
 	store := NewMemoryStore()
 	request, err := NewRequest("REQ-1", "SUP-2", "LOT-S", now)
