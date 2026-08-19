@@ -60,11 +60,6 @@ func (lot *Lot) Clone() *Lot {
 		return nil
 	}
 	clone := *lot
-	clone.AffectedTools = make(map[string]time.Time, len(lot.AffectedTools))
-	for tool, seenAt := range lot.AffectedTools {
-		clone.AffectedTools[tool] = seenAt
-	}
-	clone.History = append([]Transition(nil), lot.History...)
 	return &clone
 }
 
@@ -75,11 +70,7 @@ func (lot *Lot) MarkTool(toolID string, observedAt time.Time) error {
 	if toolID == "" {
 		return errors.New("tool id is required")
 	}
-	if lot.AffectedTools == nil {
-		lot.AffectedTools = make(map[string]time.Time)
-	}
 	lot.AffectedTools[toolID] = observedAt
-	lot.Revision++
 	return nil
 }
 

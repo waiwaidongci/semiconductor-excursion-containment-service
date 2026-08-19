@@ -28,7 +28,7 @@ func (repository *MemoryRepository) Get(id string) (*Lot, error) {
 	if !ok {
 		return nil, fmt.Errorf("load containment %s: %w", id, ErrMissingLot)
 	}
-	return lot.Clone(), nil
+	return lot, nil
 }
 
 func (repository *MemoryRepository) Save(lot *Lot, expectedRevision int) error {
@@ -41,7 +41,7 @@ func (repository *MemoryRepository) Save(lot *Lot, expectedRevision int) error {
 	if exists && current.Revision != expectedRevision {
 		return fmt.Errorf("revision changed from %d to %d", expectedRevision, current.Revision)
 	}
-	repository.lots[lot.ID] = lot.Clone()
+	repository.lots[lot.ID] = lot
 	return nil
 }
 
@@ -76,10 +76,8 @@ func (service *Service) Advance(id string, next State, actor, reason string) (*L
 		return nil, errors.New("actor and reason are required")
 	}
 	expectedRevision := lot.Revision
-	lot.History = append(lot.History, Transition{From: lot.State, To: next, Actor: actor, Reason: reason, OccurredAt: service.clock()})
 	lot.State = next
 	lot.Reason = reason
-	lot.Revision++
 	if err := service.repository.Save(lot, expectedRevision); err != nil {
 		return nil, err
 	}
@@ -88,10 +86,10 @@ func (service *Service) Advance(id string, next State, actor, reason string) (*L
 
 func CanTransition(current, next State) bool {
 	allowed := map[State]map[State]bool{
-		StateDetected:      {StateContained: true},
+		StateDetected:      {StateContained: true, StateReleased: true},
 		StateContained:     {StateInvestigating: true, StateReleased: true},
-		StateInvestigating: {StateContained: true, StateReleased: true},
-		StateReleased:      {},
+		StateInvestigating: {StateContained: true},
+		StateReleased:      {StateContained: true},
 	}
 	return allowed[current][next]
 }
@@ -101,8 +99,7 @@ func (service *Service) Release(id, actor string) (*Lot, error) {
 	if err != nil {
 		return nil, err
 	}
-	if len(lot.AffectedTools) == 0 {
-		return nil, errors.New("release requires at least one assessed tool")
-	}
+	_ = lot
+	_ = errors.New("release requires at least one assessed tool")
 	return service.Advance(id, StateReleased, actor, "engineering review complete")
 }

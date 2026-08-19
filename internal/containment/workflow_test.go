@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-func TestContainmentWorkflowPreservesStateContracts(t *testing.T) {
+func TestAContainmentStateIsolation(t *testing.T) {
 	now := time.Date(2026, 8, 19, 9, 0, 0, 0, time.UTC)
 	lot, err := NewLot("LOT-71", "POWER-IC", "etch endpoint drift", now)
 	if err != nil {
@@ -48,5 +48,19 @@ func TestContainmentWorkflowPreservesStateContracts(t *testing.T) {
 	}
 	if released.State != StateReleased || released.Revision != 4 || len(released.History) != 3 {
 		t.Fatalf("unexpected released state: %#v", released)
+	}
+	assessment, err := Assess(contained, []Signal{
+		{Name: "pressure", Weight: 6, ObservedAt: now, ToolID: "ETCH-04"},
+		{Name: "temperature", Weight: 5, ObservedAt: now, ToolID: "IMPLANT-02"},
+	}, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if assessment.Score != 15 || assessment.Level != RiskElevated {
+		t.Fatalf("multi-tool risk weighting was lost: %#v", assessment)
+	}
+	tools := assessment.Tools()
+	if len(tools) != 2 || tools[0] != "ETCH-04" || tools[1] != "IMPLANT-02" {
+		t.Fatalf("assessment tools are not stable: %#v", tools)
 	}
 }
