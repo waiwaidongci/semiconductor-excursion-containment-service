@@ -43,17 +43,20 @@ type Snapshot struct {
 }
 
 func (snapshot Snapshot) Clone() Snapshot {
-	return snapshot
+	clone := snapshot
+	clone.Points = append([]Point(nil), snapshot.Points...)
+	return clone
 }
 
 func (snapshot Snapshot) Sorted() Snapshot {
-	sort.SliceStable(snapshot.Points, func(left, right int) bool {
-		if snapshot.Points[left].Key.ToolID == snapshot.Points[right].Key.ToolID {
-			return snapshot.Points[left].Key.Metric < snapshot.Points[right].Key.Metric
+	clone := snapshot.Clone()
+	sort.SliceStable(clone.Points, func(left, right int) bool {
+		if clone.Points[left].Key.ToolID == clone.Points[right].Key.ToolID {
+			return clone.Points[left].Key.Metric < clone.Points[right].Key.Metric
 		}
-		return snapshot.Points[left].Key.ToolID < snapshot.Points[right].Key.ToolID
+		return clone.Points[left].Key.ToolID < clone.Points[right].Key.ToolID
 	})
-	return snapshot
+	return clone
 }
 
 func (snapshot Snapshot) ByTool(toolID string) []Point {
