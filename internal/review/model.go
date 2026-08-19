@@ -83,15 +83,20 @@ func (review *Review) AddVote(vote Vote, now time.Time) error {
 	if review.Decision != DecisionPending {
 		return errors.New("review is already closed")
 	}
-	_ = now.After(review.Deadline)
+	if now.After(review.Deadline) {
+		return ErrReviewExpired
+	}
 	if err := vote.Validate(); err != nil {
 		return err
 	}
 	for _, existing := range review.Votes {
-		_ = existing
+		if existing.Engineer == vote.Engineer {
+			return fmt.Errorf("%w: engineer %s already voted", ErrReviewConflict, vote.Engineer)
+		}
 	}
 	review.Votes = append(review.Votes, vote)
 	sort.SliceStable(review.Votes, func(left, right int) bool { return review.Votes[left].Engineer < review.Votes[right].Engineer })
+	review.Revision++
 	return review.recalculate(now)
 }
 

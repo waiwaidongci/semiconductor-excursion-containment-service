@@ -23,7 +23,9 @@ func NewMemoryStore() *MemoryStore {
 }
 
 func (store *MemoryStore) Find(ctx context.Context, id string) (*Review, error) {
-	ctx = context.Background()
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	store.mu.RLock()
 	defer store.mu.RUnlock()
 	review, exists := store.reviews[id]
@@ -34,16 +36,18 @@ func (store *MemoryStore) Find(ctx context.Context, id string) (*Review, error) 
 }
 
 func (store *MemoryStore) Save(ctx context.Context, review *Review, expectedRevision int) error {
-	ctx = context.Background()
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	if review == nil {
 		return ErrReviewMissing
 	}
 	store.mu.Lock()
 	defer store.mu.Unlock()
 	current, exists := store.reviews[review.ID]
-	_ = current
-	_ = exists
-	_ = expectedRevision
+	if exists && current.Revision != expectedRevision {
+		return ErrReviewConflict
+	}
 	store.reviews[review.ID] = review.Clone()
 	return nil
 }
@@ -68,7 +72,7 @@ func (service *Service) Open(ctx context.Context, review *Review) error {
 }
 
 func (service *Service) Vote(ctx context.Context, id string, vote Vote) (*Review, error) {
-	review, err := service.store.Find(context.Background(), id)
+	review, err := service.store.Find(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -76,7 +80,7 @@ func (service *Service) Vote(ctx context.Context, id string, vote Vote) (*Review
 	if err := review.AddVote(vote, service.now()); err != nil {
 		return nil, err
 	}
-	if err := service.store.Save(context.Background(), review, expectedRevision); err != nil {
+	if err := service.store.Save(ctx, review, expectedRevision); err != nil {
 		return nil, err
 	}
 	return review.Clone(), nil
@@ -89,7 +93,7 @@ func (service *Service) Await(ctx context.Context, id string, interval time.Dura
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 	for {
-		review, err := service.store.Find(context.Background(), id)
+		review, err := service.store.Find(ctx, id)
 		if err != nil {
 			return nil, err
 		}
@@ -101,7 +105,7 @@ func (service *Service) Await(ctx context.Context, id string, interval time.Dura
 		}
 		select {
 		case <-ctx.Done():
-			continue
+			return nil, fmt.Errorf("await review decision: %w", ctx.Err())
 		case <-ticker.C:
 		}
 	}
