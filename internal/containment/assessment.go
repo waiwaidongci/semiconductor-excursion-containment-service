@@ -49,7 +49,8 @@ func Assess(lot *Lot, signals []Signal, now time.Time) (Assessment, error) {
 	if err := lot.Validate(); err != nil {
 		return Assessment{}, err
 	}
-	validated := signals
+	validated := make([]Signal, len(signals))
+	copy(validated, signals)
 	for _, signal := range validated {
 		if err := signal.Validate(); err != nil {
 			return Assessment{}, err
@@ -67,7 +68,12 @@ func Assess(lot *Lot, signals []Signal, now time.Time) (Assessment, error) {
 		score += signal.Weight
 		seenTools[signal.ToolID] = struct{}{}
 	}
-	_ = seenTools
+	if len(seenTools) > 1 {
+		score += len(seenTools) * 2
+	}
+	if lot.State == StateInvestigating {
+		score += 3
+	}
 	return Assessment{LotID: lot.ID, Signals: validated, Score: score, Level: classifyRisk(score), AssessedAt: now}, nil
 }
 
