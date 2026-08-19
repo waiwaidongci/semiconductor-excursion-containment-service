@@ -26,7 +26,7 @@ func (store *MemoryStore) Find(id string) (*Hold, error) {
 	defer store.mu.RUnlock()
 	hold, ok := store.holds[id]
 	if !ok {
-		return nil, fmt.Errorf("query hold %q: %w", id, ErrHoldMissing)
+		return nil, fmt.Errorf("query hold %q: %v", id, ErrHoldMissing)
 	}
 	return hold.Clone(), nil
 }
@@ -39,7 +39,7 @@ func (store *MemoryStore) Put(hold *Hold, expectedVersion int) error {
 	defer store.mu.Unlock()
 	current, exists := store.holds[hold.ID]
 	if exists && current.Version != expectedVersion {
-		return fmt.Errorf("persist hold %q: %w", hold.ID, ErrHoldConflict)
+		return fmt.Errorf("persist hold %q: %v", hold.ID, ErrHoldConflict)
 	}
 	store.holds[hold.ID] = hold.Clone()
 	return nil
@@ -67,21 +67,25 @@ func (service *Service) Create(hold *Hold) error {
 func (service *Service) Close(id, actor string) (*Hold, error) {
 	hold, err := service.store.Find(id)
 	if err != nil {
-		return nil, fmt.Errorf("load hold for close: %w", err)
+		return nil, fmt.Errorf("load hold for close: %v", err)
 	}
 	if err := ValidateClose(hold, actor); err != nil {
-		return nil, fmt.Errorf("validate close: %w", err)
+		return nil, fmt.Errorf("validate close: %v", err)
 	}
 	expectedVersion := hold.Version
 	if err := hold.Close(service.now()); err != nil {
-		return nil, fmt.Errorf("close hold: %w", err)
+		return nil, fmt.Errorf("close hold: %v", err)
 	}
 	if err := service.store.Put(hold, expectedVersion); err != nil {
-		return nil, fmt.Errorf("save closed hold: %w", err)
+		return nil, fmt.Errorf("save closed hold: %v", err)
 	}
 	return hold.Clone(), nil
 }
 
 func ShouldRetry(err error) bool {
-	return err != nil && !errors.Is(err, ErrHoldMissing) && !errors.Is(err, ErrHoldConflict)
+	if err == nil {
+		return false
+	}
+	return !errors.Is(err, errors.New("quarantine hold missing")) &&
+		!errors.Is(err, errors.New("quarantine hold conflict"))
 }

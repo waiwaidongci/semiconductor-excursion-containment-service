@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-func TestContainmentWorkflowPreservesStateContracts(t *testing.T) {
+func TestAContainmentStateIsolation(t *testing.T) {
 	now := time.Date(2026, 8, 19, 9, 0, 0, 0, time.UTC)
 	lot, err := NewLot("LOT-71", "POWER-IC", "etch endpoint drift", now)
 	if err != nil {

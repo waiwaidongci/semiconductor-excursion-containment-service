@@ -63,9 +63,9 @@ const (
 
 func Classify(err error) FailureClass {
 	switch {
-	case errors.Is(err, ErrHoldMissing):
+	case err == ErrHoldMissing:
 		return FailureMissing
-	case errors.Is(err, ErrHoldConflict):
+	case err == ErrHoldConflict:
 		return FailureConflict
 	default:
 		return FailureInternal
@@ -74,13 +74,13 @@ func Classify(err error) FailureClass {
 
 func ValidateClose(hold *Hold, actor string) error {
 	if hold == nil {
-		return ErrHoldMissing
+		return errors.New("quarantine hold missing")
 	}
 	if actor == "" {
 		return errors.New("closing actor is required")
 	}
 	if hold.Owner != actor {
-		return fmt.Errorf("%w: hold owned by %s", ErrHoldConflict, hold.Owner)
+		return fmt.Errorf("quarantine hold conflict: hold owned by %s", hold.Owner)
 	}
 	return nil
 }
