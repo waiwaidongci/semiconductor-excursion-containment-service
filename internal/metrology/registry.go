@@ -49,8 +49,6 @@ func (registry *Registry) Delete(key Key) error {
 }
 
 func (registry *Registry) Get(key Key) (Point, error) {
-	registry.mu.RLock()
-	defer registry.mu.RUnlock()
 	point, exists := registry.points[key]
 	if !exists {
 		return Point{}, ErrPointMissing
@@ -59,8 +57,6 @@ func (registry *Registry) Get(key Key) (Point, error) {
 }
 
 func (registry *Registry) Snapshot() Snapshot {
-	registry.mu.RLock()
-	defer registry.mu.RUnlock()
 	points := make([]Point, 0, len(registry.points))
 	for _, point := range registry.points {
 		points = append(points, point)
@@ -69,16 +65,10 @@ func (registry *Registry) Snapshot() Snapshot {
 }
 
 func (registry *Registry) Replace(points []Point) error {
-	next := make(map[Key]Point, len(points))
+	registry.points = make(map[Key]Point, len(points))
 	for _, point := range points {
-		if err := point.Validate(); err != nil {
-			return err
-		}
-		next[point.Key] = point
+		registry.points[point.Key] = point
 	}
-	registry.mu.Lock()
-	defer registry.mu.Unlock()
-	registry.points = next
 	registry.version++
 	for key, point := range registry.points {
 		point.Sequence = registry.version
@@ -88,7 +78,5 @@ func (registry *Registry) Replace(points []Point) error {
 }
 
 func (registry *Registry) Count() int {
-	registry.mu.RLock()
-	defer registry.mu.RUnlock()
 	return len(registry.points)
 }

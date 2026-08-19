@@ -63,7 +63,7 @@ func (factory *trackedTransactions) Begin(lotID string) (Transaction, error) {
 	return factory.current, nil
 }
 
-func TestEvidenceResourcesCloseAndErrorsSurvive(t *testing.T) {
+func TestFEvidenceResourceLifecycle(t *testing.T) {
 	items := make([]Item, 0, 12)
 	for index := 0; index < 12; index++ {
 		items = append(items, Item{ID: fmt.Sprintf("E-%02d", index), LotID: "LOT-E", Kind: "image", Location: fmt.Sprintf("s3://e/%d", index), Checksum: "sha256", CreatedAt: time.Now()})
